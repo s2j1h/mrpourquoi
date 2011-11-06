@@ -14,7 +14,8 @@
       form(action="/question", method="post")
         .clearfix
           .input1
-            textarea(class='span12', name='question[text]', id='question', rows='3', style='margin-left:0px;font-size:20px;')
+            textarea(class='span12', name='question[text]', id='question', rows='6', style='margin-left:0px;font-size:20px;')
+            span(class='help-block') Vous pourrez donner une réponse dès l'étape suivante si vous le souhaitez.
         .actions
           input(type='submit', class="btn primary", value="Poser la question !")
           &nbsp;
