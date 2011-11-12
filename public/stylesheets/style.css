@@ -10,4 +10,12 @@ body {
   text-align: center; /* center align it with the container */
 }
 
+h2.question {
+  border-top: 1px solid #DDD;
+}
+
+.label{
+  font-size: 20px;
+}
+
 

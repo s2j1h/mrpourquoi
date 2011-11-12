@@ -12,7 +12,8 @@ var Schema = mongoose.Schema
   , ObjectId = Schema.ObjectId;
 
 var Answers = new Schema({
-    body      : String
+    author    : String
+  , body      : String
   , date      : Date
   , votes : Number
 });
@@ -84,7 +85,7 @@ app.get('/question/:id/vote', function(req, res){
             req.flash('success', 'Bravo! vous avez voté pour la question qui devient ainsi un peu plus populaire gràce à vous');
             res.redirect('back');
           } else {
-            console.log("Error in POST /Question:" + err);
+            console.log("Error in GET /Question/:id/vote" + err);
             req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre question n\'a pas été posée. Pourquoi ne pas réessayer ?');
             res.redirect('back');
           }
@@ -94,9 +95,55 @@ app.get('/question/:id/vote', function(req, res){
   }
 });
 
+//answer to a question by id
+app.post('/question/:id/answer', function(req, res){
+
+  if(req.params.id == null || req.params.id == ''){
+    req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question pour y apporter une réponse :( ');
+    res.redirect('back');
+  } else {
+  
+    Question.findById(req.params.id, function (err, doc){
+      if(err != null) {
+        console.log("Error in GET /Question/:id/answer" + err);
+        req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre question n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+        res.redirect('back');
+      } else if(doc == null) {
+          req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question :( ');
+          res.redirect('back');
+      } else {
+
+         if(req.body.answer.text==null || req.body.answer.text==''){
+            req.flash('error', 'Holy guacamole! Pour répondre à une question, il faut d\'abord remplir le champ correspondant ci-dessous !');
+            res.redirect('back');
+          } else {
+          var answer = new Answer();
+          answer.author = "anonynme";
+          answer.date = new Date();
+          answer.votes = 0;
+          answer.body = req.body.answer.text;
+          doc.answers.push(answer);
+          doc.save(function (err) {
+            if(err == null) {
+              req.flash('success', 'Bravo! vous avez donné une réponse à la question - pourquoi ne pas essayer de répondre à une autre question?');
+              res.redirect('back');
+            } else {
+              console.log("Error inGET /Question/:id/answer" + err);
+              req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre réponse n\'a pas été enregistrée. Pourquoi ne pas réessayer ?');
+              res.redirect('back');
+            }
+          });
+        }
+      }
+    });
+  }
+});
+
+
+
 
 //get a question by id
-app.get('/question/:id', function(req, res){
+app.get('/question/:id/show', function(req, res){
 
   if(req.params.id == null || req.params.id == ''){
     req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question :( ');
@@ -134,7 +181,7 @@ app.get('/question', function(req, res){
 //post question
 app.post('/question', function(req, res){
 
-  //console.log("req.body:" + req.body.question); 
+  //console.log("req.body:" + req.body.question.text); 
   if(req.body.question.text==null || req.body.question.text==''){
     req.flash('error', 'Holy guacamole! Pour poser une question, il faut d\'abord remplir le champ correspondant ci-dessous !');
     res.redirect('back');
@@ -155,16 +202,29 @@ app.post('/question', function(req, res){
         res.redirect('back');
       }
     });
-    res.redirect('/question/'+question._id);
+    res.redirect('/question/'+question._id+'/show');
   }
 });
 
 //get questions list
-app.get('/questions', function(req, res){
-  res.render('questions', {
-    title: 'Liste des questions',
-    locals: {flash: req.flash()}
-  });
+app.get('/question/list', function(req, res){
+
+  Question.find(function (err, doc){
+    if(err != null) {
+      console.log("Error in GET /Question/list" + err);
+      req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+      res.redirect('back');
+    } else if(doc == null) {
+      req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé de question en base - pourquoi ne pas en rédiger une ? ');
+      res.redirect('back');
+    } else {
+      res.render('list_questions', {
+            title: 'Les questions',
+            questions: doc,
+            locals: {flash: req.flash()}
+          });
+      }
+    });
 });
 
 

@@ -16,18 +16,16 @@ html(lang='fr')
         .container
           a(class='brand', href="/") Mr Pourquoi
           ul.nav
-            li.active
-              a(href="/") Accueil
             li
-              a(href="/questions") Questions
+              a(href="/question/list") Voir les questions
             li
-              a(href="/contact") Contact
-          p.pull-right Logged in as 
+              a(href="/question") Poser une question
+          p.pull-right Bienvenue 
               a(href='#') username
     
     .container!= body
 
       footer
-        p MrPourquoi est fièrement développé par <a href="http://labs.zeneffy.fr">Zeneffy Labs</a> et propulsé par <a href="http://nodejs.org/">Node.js</a>, <a href="http://expressjs.com/">Express</a> et <a href="http://www.mongodb.org/">MongoDB</a>.
+        p Mr Pourquoi est fièrement développé par <a href="http://labs.zeneffy.fr">Zeneffy Labs</a> et propulsé par <a href="http://nodejs.org/">Node.js</a>, <a href="http://expressjs.com/">Express</a> et <a href="http://www.mongodb.org/">MongoDB</a>.
         p &copy; J.Raigneau 2011
 
