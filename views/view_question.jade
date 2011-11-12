@@ -38,7 +38,7 @@
             &nbsp;
             button(type='reset', class='btn') Effacer
       .span4
-         p Soyez créatif, imaginatif, malin afin de maximiser le nombre de vote !
+         p Rien de telle qu'une réponse créative, drôle, imaginative, futée, originale, inventive, insolite, maline, surprenante afin de maximiser le nombre de vote !
 
 
 
@@ -57,11 +57,11 @@
             h5 par #{answer.author}
             p répondue le #{answer.date.getDate()}/#{answer.date.getMonth()+1}/#{answer.date.getFullYear()}
             - if(answer.votes<1)
-              p Aucun vote - <a href=''>Voter</a>
+              p Aucun vote - <a href='/question/#{question._id}/answer/#{answer._id}/vote'>Voter</a>
             - else if(answer.votes<2)
-              p Un vote - <a href=''>Voter</a>
+              p Un vote - <a href='/question/#{question._id}/answer/#{answer._id}/vote'>Voter</a>
             - else
-              p #{answer.votes} votes - <a href=''>Voter</a>
+              p #{answer.votes} votes - <a href='/question/#{question._id}/answer/#{answer._id}/vote'>Voter</a>
     
 
 

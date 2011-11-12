@@ -12,14 +12,14 @@ var Schema = mongoose.Schema
   , ObjectId = Schema.ObjectId;
 
 var Answers = new Schema({
-    author    : String
+    author    : { type: String, index:  true  }
   , body      : String
   , date      : Date
   , votes : Number
 });
 
 var Questions = new Schema({
-    author    : String
+    author    : { type: String, index:  true  }
   , body      : String
   , date      : Date
   , answers   : [Answers]
@@ -42,6 +42,19 @@ app.configure(function(){
   app.use(express.methodOverride());
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
+
+  app.use(function(req, res, next){
+    res.render('404', { status: 404, url: req.url, title: "Erreur" });
+  });
+
+  app.use(function(err, req, res, next){
+    res.render('500', {
+      status: err.status || 500
+    , error: err
+    , title: "Erreur"
+    });
+  });
+
 });
 
 app.configure('development', function(){
@@ -54,12 +67,24 @@ app.configure('production', function(){
 
 // Routes
 
+//errors
+app.get('/404', function(req, res, next){
+  next();
+});
+
+app.get('/500', function(req, res, next){
+  next(new Error('Holy guacamole!'));
+});
+
+
 //index
 app.get('/', function(req, res){
    res.render('index', {
-    title: 'Accueil'
+    title: 'Accueil',
+    locals: {flash: req.flash()}
   });
 });
+
 
 
 //vote for a question by id
@@ -86,7 +111,7 @@ app.get('/question/:id/vote', function(req, res){
             res.redirect('back');
           } else {
             console.log("Error in GET /Question/:id/vote" + err);
-            req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre question n\'a pas été posée. Pourquoi ne pas réessayer ?');
+            req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre vote n\'a pas été enregistré. Pourquoi ne pas réessayer ?');
             res.redirect('back');
           }
         });
@@ -94,6 +119,45 @@ app.get('/question/:id/vote', function(req, res){
     });
   }
 });
+
+//vote for a answer by id
+app.get('/question/:id/answer/:id_answer/vote', function(req, res){
+
+  if(req.params.id == null || req.params.id == '' || req.params.id_answer == null || req.params.id_answer == ''){
+    req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question :( ');
+    res.redirect('back');
+  } else {
+  
+    Question.findById(req.params.id, function (err, doc){
+      if(err != null) {
+        console.log("Error in GET /question/:id/answer/:id_answer/vote'" + err);
+        req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre question n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+        res.redirect('back');
+      } else if(doc == null) {
+          req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question dans la base :( ');
+          res.redirect('back');
+      } else {
+        if(doc.answers.id(req.params.id_answer) == null) {
+          req.flash('error', 'Mille millions de mille sabords! Nous sommes désolé mais nous n\'avons pas trouvé la réponse dans la base :( ');
+          res.redirect('back');
+        } else {
+          doc.answers.id(req.params.id_answer) .votes = doc.answers.id(req.params.id_answer).votes + 1;
+          doc.save(function (err) {
+            if(err == null) {
+              req.flash('success', 'Bravo! vous avez voté pour la réponse qui devient ainsi un peu plus populaire gràce à vous');
+              res.redirect('back');
+            } else {
+              console.log("Error in GET /question/:id/answer/:id_answer/vote'" + err);
+              req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre vote n\'a pas été enregistré. Pourquoi ne pas réessayer ?');
+              res.redirect('back');
+            }
+          });
+        }
+      }
+    });
+  }
+});
+
 
 //answer to a question by id
 app.post('/question/:id/answer', function(req, res){

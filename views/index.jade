@@ -1,3 +1,15 @@
+if (flash.error != null)
+  .row
+    .span16
+      .alert-message.error
+        = flash.error
+else if (flash.success != null)
+  .row
+    .span16
+      .alert-message.success
+        = flash.success
+
+
 .hero-unit
   h1 Bienvenue chez Mr Pourquoi
   <br/>
