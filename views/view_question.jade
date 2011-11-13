@@ -33,6 +33,9 @@
           .clearfix
             .input1
               textarea(class='span12', name='answer[text]', id='answer', rows='6', style='margin-left:0px;font-size:14px;')
+          .clearfix
+            <input type="hidden" name="csrf" value=#{csrf}>
+
           .actions
             input(type='submit', class="btn primary", value="Répondre à la question !")
             &nbsp;

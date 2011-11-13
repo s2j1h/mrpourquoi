@@ -1,10 +1,13 @@
-
 /**
- * Module dependencies.
+ *  * Mr Pourquoi *
+ *
  */
+
+// @api: test
 
 var express = require('express');
 var mongoose = require('mongoose');
+csrf = require('express-csrf');
 mongoose.connect('mongodb://express-test:express-test@dbh83.mongolab.com:27837/express-test');
 
 //MongoDB model
@@ -31,18 +34,23 @@ var Answer = mongoose.model('Answers', Answers)
 
 var app = module.exports = express.createServer();
 
+app.dynamicHelpers({
+    csrf: csrf.token
+});
+
 // Configuration
 
 app.configure(function(){
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
+  app.use(express.favicon());
   app.use(express.bodyParser());
   app.use(express.cookieParser());
   app.use(express.session({ secret: 'keyboard cat' }));
   app.use(express.methodOverride());
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
-
+  app.use(csrf.check());
   app.use(function(req, res, next){
     res.render('404', { status: 404, url: req.url, title: "Erreur" });
   });
