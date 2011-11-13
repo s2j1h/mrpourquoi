@@ -3,45 +3,18 @@
 //  - Le serveur/framework [node.js](http://nodejs.org) en javascript basé sur le moteur [V8](http://code.google.com/p/v8/)
 //  - Le framework web [express](http://expressjs.com) utilisant les mêmes idées que [sinatra](http://sinatrarb.com)
 //  - La base de donnée NoSQL [mongodb](http://mongodb.org) via [mongoose](http://mongoosejs.com/)
+//  - les fonctionnalités de [map/reduce](http://www.mongodb.org/display/DOCS/MapReduce#MapReduce-Overview) de mongodb
 //  - Le moteur de template [jade](https://github.com/visionmedia/jade)
 //  - le kit de démarrage css/javascript [bootstrap](http://twitter.github.com/bootstrap/) de Twitter
+//  - (à venir) La connexion à facebook via la librairie [everyauth](https://github.com/bnoguchi/everyauth)
 
 // Configuration de l'application
 // ------------------------------
 
 // Déclaration des dépendances
-var express = require('express');
-var mongoose = require('mongoose');
-var csrf = require('express-csrf');
-
-// Connexion à la base de donnée mongodb
-mongoose.connect('mongodb://express-test:express-test@dbh83.mongolab.com:27837/express-test');
-
-// Déclaration des modèles MongoDB
-var Schema = mongoose.Schema
-  , ObjectId = Schema.ObjectId;
-
-// Le modèle des réponses **Answers** qui sera inclus dans chaque question (embedded document pour mongodb)
-// Le champ **author** est un index
-var Answers = new Schema({
-    author    : { type: String, index:  true  }
-  , body      : String
-  , date      : Date
-  , votes : Number
-});
-
-// Le modèle des questions **Question**, vous noterez la liste des réponses **answers** incluse
-var Questions = new Schema({
-    author    : { type: String, index:  true  }
-  , body      : String
-  , date      : Date
-  , answers   : [Answers]
-  , votes : Number
-});
-
-// Déclaration des modèles pour utilisation dans le code
-var Question = mongoose.model('Questions', Questions)
-var Answer = mongoose.model('Answers', Answers)
+var express = require('express');       //le framework web express
+var mongoose = require('mongoose');     //La librairie pour accéder à mongodb
+var csrf = require('express-csrf');     //la protection anti csrf
 
 // Création de l'application express
 var app = module.exports = express.createServer();
@@ -93,9 +66,43 @@ app.configure('production', function(){
   app.use(express.errorHandler()); 
 });
 
+// Préparation de la gestion des données
+// -------------------------------------
+
+// Connexion à la base de donnée mongodb
+mongoose.connect('mongodb://express-test:express-test@dbh83.mongolab.com:27837/express-test');
+
+// Déclaration des modèles MongoDB
+var Schema = mongoose.Schema
+  , ObjectId = Schema.ObjectId;
+
+// Le modèle des réponses **Answers** qui sera inclus dans chaque question (embedded document pour mongodb)
+// Le champ **author** est un index
+var Answers = new Schema({
+    author    : { type: String, index:  true  }
+  , body      : String
+  , date      : Date
+  , votes : Number
+});
+
+// Le modèle des questions **Question**, vous noterez la liste des réponses **answers** incluse
+var Questions = new Schema({
+    author    : { type: String, index:  true  }
+  , body      : String
+  , date      : Date
+  , answers   : [Answers]
+  , votes : Number
+});
+
+// Déclaration des modèles pour utilisation dans le code
+var Question = mongoose.model('Questions', Questions)
+var Answer = mongoose.model('Answers', Answers)
+
 
 // Début de la déclaration des Routes
 // ----------------------------------
+// Il est important de noter que nous utilisons du javascript, par conséquent tout fonctionne via
+// [callbacks](http://www.coursweb.ch/javascript/callbacks.html)
 
 // Page d'erreur 404
 app.get('/404', function(req, res, next){
@@ -118,29 +125,31 @@ app.get('/', function(req, res){
 
 
 
-//vote for a question by id
+// Gestion du vote pour une question
+//
+// En entrée nous avons l'**id** de la question
 app.get('/question/:id/vote', function(req, res){
 
-  if(req.params.id == null || req.params.id == ''){
+  if(req.params.id == null || req.params.id == ''){           // Vérification que l'id est bien dans la requête, sinon un message d'erreur
     req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question :( ');
     res.redirect('back');
   } else {
   
-    Question.findById(req.params.id, function (err, doc){
-      if(err != null) {
-        console.log("Error in GET /Question/:id/vote" + err);
+    Question.findById(req.params.id, function (err, doc){     // Recherche de la question correspondant à l'id en base
+      if(err != null) {                                       // Une erreur est survenue pendant la recherche en base
+        console.log("Error in GET /Question/:id/vote" + err); 
         req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre question n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
         res.redirect('back');
-      } else if(doc == null) {
+      } else if(doc == null) {                                // Aucune question ne correspond à l'id => envoi d'un message d'erreur
           req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question :( ');
           res.redirect('back');
       } else {
-        doc.votes = doc.votes + 1;
-        doc.save(function (err) {
-          if(err == null) {
+        doc.votes = doc.votes + 1;                            // On ajoute un vote supplémentaire à la question
+        doc.save(function (err) {                             // Sauvegarde de la question en base
+          if(err == null) {                                   // Tout s'est bien passé: retour à la page précédente avec un message
             req.flash('success', 'Bravo! vous avez voté pour la question qui devient ainsi un peu plus populaire gràce à vous');
             res.redirect('back');
-          } else {
+          } else {                                            // La sauvegarde a échoué - retour à la page précédente avec un message d'alerte
             console.log("Error in GET /Question/:id/vote" + err);
             req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre vote n\'a pas été enregistré. Pourquoi ne pas réessayer ?');
             res.redirect('back');
@@ -151,33 +160,35 @@ app.get('/question/:id/vote', function(req, res){
   }
 });
 
-//vote for a answer by id
+// Gestion du vote pour une réponse
+//
+// En entrée nous l'**id** de la question et l'**id_answer** de la réponse correspondante
 app.get('/question/:id/answer/:id_answer/vote', function(req, res){
 
-  if(req.params.id == null || req.params.id == '' || req.params.id_answer == null || req.params.id_answer == ''){
+  if(req.params.id == null || req.params.id == '' || req.params.id_answer == null || req.params.id_answer == ''){ // Vérification que l'id et l'id_answer sont bien dans la requête, sinon un message d'erreur
     req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question :( ');
     res.redirect('back');
   } else {
   
-    Question.findById(req.params.id, function (err, doc){
-      if(err != null) {
+    Question.findById(req.params.id, function (err, doc){            // Recherche de la question correspondant à l'id en base
+      if(err != null) {                                              // Une erreur est survenue pendant la recherche en base
         console.log("Error in GET /question/:id/answer/:id_answer/vote'" + err);
         req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre question n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
         res.redirect('back');
-      } else if(doc == null) {
+      } else if(doc == null) {                                       // Aucune question ne correspond à l'id=> envoi d'un message d'erreur
           req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé la question dans la base :( ');
           res.redirect('back');
       } else {
-        if(doc.answers.id(req.params.id_answer) == null) {
+        if(doc.answers.id(req.params.id_answer) == null) {           // Aucune réponse ne correspond à l'id_answer => envoi d'un message d'erreur
           req.flash('error', 'Mille millions de mille sabords! Nous sommes désolé mais nous n\'avons pas trouvé la réponse dans la base :( ');
           res.redirect('back');
         } else {
-          doc.answers.id(req.params.id_answer) .votes = doc.answers.id(req.params.id_answer).votes + 1;
-          doc.save(function (err) {
-            if(err == null) {
+          doc.answers.id(req.params.id_answer) .votes = doc.answers.id(req.params.id_answer).votes + 1;  // Mise à jour des votes de la réponse
+          doc.save(function (err) {                                  // Sauvegarde de la question et des réponses en base
+            if(err == null) {                                        // Tout s'est bien passé: retour à la page précédente avec un message
               req.flash('success', 'Bravo! vous avez voté pour la réponse qui devient ainsi un peu plus populaire gràce à vous');
               res.redirect('back');
-            } else {
+            } else {                                                 // La sauvegarde a échoué - retour à la page précédente avec un message d'alerte
               console.log("Error in GET /question/:id/answer/:id_answer/vote'" + err);
               req.flash('error', 'Bloody tzatziki! Une erreur est survenue et votre vote n\'a pas été enregistré. Pourquoi ne pas réessayer ?');
               res.redirect('back');
