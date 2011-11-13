@@ -1,19 +1,28 @@
-/**
- *  * Mr Pourquoi *
- *
- */
+// **Mr Pourquoi** est un projet lancé par [jraigneau](http://blog.zeneffy.fr) pour tester différentes technologies, notamment
+//
+//  - Le serveur/framework [node.js](http://nodejs.org) en javascript basé sur le moteur [V8](http://code.google.com/p/v8/)
+//  - Le framework web [express](http://expressjs.com) utilisant les mêmes idées que [sinatra](http://sinatrarb.com)
+//  - La base de donnée NoSQL [mongodb](http://mongodb.org) via [mongoose](http://mongoosejs.com/)
+//  - Le moteur de template [jade](https://github.com/visionmedia/jade)
+//  - le kit de démarrage css/javascript [bootstrap](http://twitter.github.com/bootstrap/) de Twitter
 
-// @api: test
+// Configuration de l'application
+// ------------------------------
 
+// Déclaration des dépendances
 var express = require('express');
 var mongoose = require('mongoose');
-csrf = require('express-csrf');
+var csrf = require('express-csrf');
+
+// Connexion à la base de donnée mongodb
 mongoose.connect('mongodb://express-test:express-test@dbh83.mongolab.com:27837/express-test');
 
-//MongoDB model
+// Déclaration des modèles MongoDB
 var Schema = mongoose.Schema
   , ObjectId = Schema.ObjectId;
 
+// Le modèle des réponses **Answers** qui sera inclus dans chaque question (embedded document pour mongodb)
+// Le champ **author** est un index
 var Answers = new Schema({
     author    : { type: String, index:  true  }
   , body      : String
@@ -21,6 +30,7 @@ var Answers = new Schema({
   , votes : Number
 });
 
+// Le modèle des questions **Question**, vous noterez la liste des réponses **answers** incluse
 var Questions = new Schema({
     author    : { type: String, index:  true  }
   , body      : String
@@ -28,33 +38,38 @@ var Questions = new Schema({
   , answers   : [Answers]
   , votes : Number
 });
+
+// Déclaration des modèles pour utilisation dans le code
 var Question = mongoose.model('Questions', Questions)
 var Answer = mongoose.model('Answers', Answers)
 
-
+// Création de l'application express
 var app = module.exports = express.createServer();
 
+// Déclaration d'un helper dynamique pour la protection [cross-site request forgery](http://fr.wikipedia.org/wiki/Cross-site_request_forgery)
 app.dynamicHelpers({
     csrf: csrf.token
 });
 
-// Configuration
-
+// Configuration de l'application, notamment des modules (ou middleware) express utilisés
+// 
+// Cette configuration est commune à l'environnement de développement et à l'environnement de production
 app.configure(function(){
-  app.set('views', __dirname + '/views');
-  app.set('view engine', 'jade');
-  app.use(express.favicon());
-  app.use(express.bodyParser());
-  app.use(express.cookieParser());
-  app.use(express.session({ secret: 'keyboard cat' }));
-  app.use(express.methodOverride());
-  app.use(app.router);
-  app.use(express.static(__dirname + '/public'));
-  app.use(csrf.check());
+  app.set('views', __dirname + '/views');                       //définition du répertoire contenant les vues
+  app.set('view engine', 'jade');                               //le moteur de template - Jade
+  app.use(express.favicon());                                   // un favicon automatique (pour éviter des erreurs 404 systématiques dans les logs)
+  app.use(express.bodyParser());                                // Pour gérer les formulaires
+  app.use(express.cookieParser());                              // Pour la gestion des cookies et des sessions
+  app.use(express.session({ secret: 'awfjepnnkqyionn14962' })); // clé d'encodage pour les cookies et les sessions
+  app.use(express.methodOverride());                            // middleware pour la gestion des actions http (post/get/put/delete)
+  app.use(app.router);                                          // Routage des urls
+  app.use(express.static(__dirname + '/public'));               // le répertoire contenant les images, javascript et css
+  app.use(csrf.check());                                        // le module anti-csrf
+  // Utilisation de page 404 customisée (cf views/404.jade)
   app.use(function(req, res, next){
     res.render('404', { status: 404, url: req.url, title: "Erreur" });
   });
-
+  // Utilisation de page 40x et 50x customisée (cf views/500.jade)
   app.use(function(err, req, res, next){
     res.render('500', {
       status: err.status || 500
@@ -65,31 +80,39 @@ app.configure(function(){
 
 });
 
+// Déclaration de la configuration spécifique à l'environnement de développement: 
+// Ici on décide de faire apparaître clairement les erreurs avec les traces
 app.configure('development', function(){
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
 });
 
+
+// Déclaratio de la configuration spécifique à l'environnement de production: 
+// Pas de trace affichée en production
 app.configure('production', function(){
   app.use(express.errorHandler()); 
 });
 
-// Routes
 
-//errors
+// Début de la déclaration des Routes
+// ----------------------------------
+
+// Page d'erreur 404
 app.get('/404', function(req, res, next){
-  next();
+  next(); // Permet d'aller à l'action suivante (cf la configuration et les fonctions définies plus haut)
 });
 
+// Page d'erreur 500
 app.get('/500', function(req, res, next){
   next(new Error('Holy guacamole!'));
 });
 
 
-//index
+// Index de MrPourquoi
 app.get('/', function(req, res){
-   res.render('index', {
-    title: 'Accueil',
-    locals: {flash: req.flash()}
+   res.render('index', {          // on utilise le template index.jade
+    title: 'Accueil',             // Le titre (champ utilisé dans layout.jade)
+    locals: {flash: req.flash()}  // Pour s'assurer que les messages flash seront bien transmis
   });
 });
 
