@@ -1,6 +1,6 @@
 h1. MrPourquoi
 
-"MrPourquoi":http://mrpourquoi.net/ est une application de questions/réponses à destination des parents.
+"MrPourquoi":http://mrpourquoi.eu/ est une application de questions/réponses à destination des parents.
 
 Avez vous déjà été pris par surprise ou resté sans réponse à un "Et pourquoi?" posé par vos enfants ? Avez-vous trouvé une façon amusante de répondre ?
 
@@ -29,7 +29,7 @@ Le dépôt de code est hébergé sur "GitHub":http://github.com/jraigneau/mrpour
 
 h2. License
 
-"MrPourquoi":http://mrpourquoi.net/ est sous "license apache v2.0":http://www.apache.org/licenses/LICENSE-2.0
+"MrPourquoi":http://mrpourquoi.eu/ est sous "license apache v2.0":http://www.apache.org/licenses/LICENSE-2.0
 
 bc. Copyright 2011 Julien Raigneau
 

@@ -8,6 +8,8 @@
 //  - le kit de démarrage css/javascript [bootstrap](http://twitter.github.com/bootstrap/) de Twitter
 //  - la génération de documentation (cette page!) via [docco](http://jashkenas.github.com/docco/)
 //  - (à venir) La connexion à facebook via la librairie [everyauth](https://github.com/bnoguchi/everyauth)
+//
+//  Pour utiliser l'application, rendez-vous directement sur [mrpourquoi.eu](http://mrpourquoi.eu/)
 
 // Configuration de l'application
 // ------------------------------
@@ -336,11 +338,49 @@ app.get('/question/list', function(req, res){
       req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé de question en base - pourquoi ne pas en rédiger une ? ');
       res.redirect('back');
     } else {
-      res.render('list_questions', {  //On affiche le template list_questions.jade
-            title: 'Les questions',
-            questions: doc,
-            locals: {flash: req.flash()}
+
+
+      urlMap = function() { //map function
+        emit("answer", this.nb_answers); //sends the url 'key' and a 'value' of 1 to the reduce function
+      }; 
+
+      urlReduce = function(previous, current) { //reduce function
+        var count = 0;
+        for (index in current) {  //in this example, 'current' will only have 1 index and the 'value' is 1
+          count += current[index]; //increments the counter by the 'value' of 1
+        }
+        return count;
+      };
+      
+      var command = {
+        mapreduce: "questions", 
+        map: urlMap.toString(), 
+        reduce: urlReduce.toString(),
+        out: {replace: "mr_questions_answers"}
+      };
+
+      //Execution de la commande **map_reduce_cmd** de map/reduce pour récupérer le nombre total de réponse
+      mongoose.connection.db.executeDbCommand(command, function(err, doc) {});
+
+      mongoose.connection.db.collection('mr_questions_answers', function(err, collection) { //query the new map-reduced table
+        collection.find({}).toArray(function(err, mr_answers) { //only pull in the top 10 results and sort descending by number of pings
+          if(err != null) {
+            console.log("Error in GET /Question/list" + err);
+            req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+            res.redirect('back');
+          } else {
+            var nb_answers = mr_answers[0].value;
+
+            res.render('list_questions', {  //On affiche le template list_questions.jade
+              title: 'Les questions',
+              questions: doc,
+              answers: nb_answers,
+              locals: {flash: req.flash()}
+            });
+
+            }
           });
+        });
       }
     });
 });
