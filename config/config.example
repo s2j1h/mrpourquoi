@@ -1,0 +1,11 @@
+module.exports = config = {
+  "developpement" : {
+    "mongodb_url" : "mongodb://<user>:<password>@<url>:<port>/<db>"
+  },
+
+  "production" : {
+    "mongodb_url" : "mongodb://<user>:<password>@<url>:<port>/<db>""
+  }
+
+}
+
