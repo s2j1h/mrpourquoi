@@ -345,6 +345,18 @@ app.get('/question/list', function(req, res){
     });
 });
 
+// ###Permet d'accéder aux pages de la documentation 
+// (les pages que vous lisez normalement!!)
+// On utilise la fonctionnalité sendfile pour envoyer des pages statiques
+// A noter que pour se simplifier la vie, une route pour la feuille de style docco.css est prévue
+app.get('/about', function(req, res){ 
+  res.sendfile(__dirname + '/docs/mrpourquoi.html')
+}); 
+
+app.get('/docco.css', function(req, res){ 
+  res.sendfile(__dirname + '/docs/docco.css')
+}); 
+
 
 // ###Lancement de l'application
 //
