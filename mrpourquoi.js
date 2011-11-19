@@ -67,11 +67,10 @@ app.configure('development', function(){
 
 // Déclaratio de la configuration spécifique à l'environnement de production: 
 // Pas de trace affichée en production
-// On définit par ailleurs la connexion à la base de donnée (paramètre extrait de
-// **config/config.js**
+// Récupération de la variable d'environnement mongodb_url, spécifique à l'hébergement sous heroku
 app.configure('production', function(){
   app.use(express.errorHandler());
-  mongoose.connect(config.production.mongodb_url);
+  mongoose.connect(process.env.mongodb_url);
 
 });
 
