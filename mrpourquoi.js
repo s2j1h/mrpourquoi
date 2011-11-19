@@ -57,11 +57,10 @@ app.configure(function(){
 
 // Déclaration de la configuration spécifique à l'environnement de développement: 
 // Ici on décide de faire apparaître clairement les erreurs avec les traces
-// On définit par ailleurs la connexion à la base de donnée (paramètre extrait de
-// **config/config.js**
+// Récupération de la variable d'environnement mongodb_url, à paramétrer via **export mongodb_url=mongodb://<user>:<password>@<url>:<port>/<db>**
 app.configure('development', function(){
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-  mongoose.connect(config.developpement.mongodb_url);
+  mongoose.connect(process.env.mongodb_url);
 });
 
 
