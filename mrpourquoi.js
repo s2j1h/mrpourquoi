@@ -363,23 +363,30 @@ app.get('/question/list', function(req, res){
       mongoose.connection.db.executeDbCommand(command, function(err, doc) {});
 
       mongoose.connection.db.collection('mr_questions_answers', function(err, collection) { //query the new map-reduced table
-        collection.find({}).toArray(function(err, mr_answers) { //only pull in the top 10 results and sort descending by number of pings
-          if(err != null) {
-            console.log("Error in GET /Question/list" + err);
-            req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
-            res.redirect('back');
-          } else {
-            var nb_answers = mr_answers[0].value;
+        if(err != null) {
+          console.log("Error in GET /Question/list" + err);
+          req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+          res.redirect('back');
+        } else {
+          collection.find({}).toArray(function(err, mr_answers) { //only pull in the top 10 results and sort descending by number of pings
+            if(err != null) {
+              console.log("Error in GET /Question/list" + err);
+              req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+              res.redirect('back');
+            } else {
+              var nb_answers = 0;
+              if(mr_answers.length>0) nb_answers = mr_answers[0].value;
 
-            res.render('list_questions', {  //On affiche le template list_questions.jade
-              title: 'Les questions',
-              questions: doc,
-              answers: nb_answers,
-              locals: {flash: req.flash()}
+              res.render('list_questions', {  //On affiche le template list_questions.jade
+                title: 'Les questions',
+                questions: doc,
+                answers: nb_answers,
+                locals: {flash: req.flash()}
+              });
+
+              }
             });
-
-            }
-          });
+          }
         });
       }
     });
