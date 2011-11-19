@@ -16,7 +16,6 @@
 var express = require('express');       //le framework web express
 var mongoose = require('mongoose');     //La librairie pour accéder à mongodb
 var csrf = require('express-csrf');     //la protection anti csrf
-var config = require('./config/config');//Chargement du fichier de configuration
 
 // Création de l'application express
 var app = module.exports = express.createServer();
