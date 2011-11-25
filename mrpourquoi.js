@@ -9,7 +9,9 @@
 //  - la génération de documentation (cette page!) via [docco](http://jashkenas.github.com/docco/)
 //  - (à venir) La connexion à facebook via la librairie [everyauth](https://github.com/bnoguchi/everyauth)
 //
-//  Pour utiliser l'application, rendez-vous directement sur [mrpourquoi.eu](http://mrpourquoi.eu/)
+// Pour utiliser l'application, rendez-vous directement sur [mrpourquoi.eu](http://mrpourquoi.eu/)
+//
+// Pour étudier et/ou récupérer le code complet du projet, n'hésitez pas à vous connecter au dépôt Github [github.com/jraigneau/mrpourquoi](https://github.com/jraigneau/mrpourquoi)
 
 // Configuration de l'application
 // ------------------------------
@@ -95,7 +97,8 @@ var Questions = new Schema({
     author    : { type: String, index:  true  }
   , body      : String
   , date      : Date
-  , nb_answers: Number
+  , nb_answers: Number // Nombre de réponses de la question -- utile pour les stats
+  , nb_votes  : Number // Nombre total de votes (question+réponses) -- utile pour les stats
   , answers   : [Answers]
   , votes : Number
 });
@@ -151,6 +154,7 @@ app.get('/question/:id/vote', function(req, res){
           res.redirect('back');
       } else {
         doc.votes = doc.votes + 1;                            // On ajoute un vote supplémentaire à la question
+        doc.nb_votes = doc.nb_votes + 1;
         doc.save(function (err) {                             // Sauvegarde de la question en base
           if(err == null) {                                   // Tout s'est bien passé: retour à la page précédente avec un message
             req.flash('success', 'Bravo! vous avez voté pour la question qui devient ainsi un peu plus populaire gràce à vous');
@@ -190,6 +194,7 @@ app.get('/question/:id/answer/:id_answer/vote', function(req, res){
           res.redirect('back');
         } else {
           doc.answers.id(req.params.id_answer) .votes = doc.answers.id(req.params.id_answer).votes + 1;  // Mise à jour des votes de la réponse
+          doc.nb_votes = doc.nb_votes + 1;
           doc.save(function (err) {                                  // Sauvegarde de la question et des réponses en base
             if(err == null) {                                        // Tout s'est bien passé: retour à la page précédente avec un message
               req.flash('success', 'Bravo! vous avez voté pour la réponse qui devient ainsi un peu plus populaire gràce à vous');
@@ -312,6 +317,7 @@ app.post('/question', function(req, res){
     question.date = new Date();
     question.votes = 0;
     question.nb_answers = 0;
+    question.nb_votes = 0;
     question.body = req.body.question.text;
     question.save(function (err) { //Insertion de l'objet en base
       if(err == null) {
@@ -340,22 +346,23 @@ app.get('/question/list', function(req, res){
     } else {
 
 
-      urlMap = function() { //map function
-        emit("answer", this.nb_answers); //sends the url 'key' and a 'value' of 1 to the reduce function
+      mapFunction = function() { //map function
+        emit("answer_vote", {answers: this.nb_answers, votes: this.nb_votes}); //sends the url 'key' and a 'value' of 1 to the reduce function
       }; 
 
-      urlReduce = function(previous, current) { //reduce function
-        var count = 0;
-        for (index in current) {  //in this example, 'current' will only have 1 index and the 'value' is 1
-          count += current[index]; //increments the counter by the 'value' of 1
-        }
-        return count;
+      reduceFunction = function(key, values) { //reduce function
+        var result = {answers: 0, votes: 0};
+        values.forEach(function(value) {
+          result.answers += value.answers;
+          result.votes += value.votes;
+        });
+        return result;
       };
       
       var command = {
         mapreduce: "questions", 
-        map: urlMap.toString(), 
-        reduce: urlReduce.toString(),
+        map: mapFunction.toString(), 
+        reduce: reduceFunction.toString(),
         out: {replace: "mr_questions_answers"}
       };
 
@@ -375,12 +382,17 @@ app.get('/question/list', function(req, res){
               res.redirect('back');
             } else {
               var nb_answers = 0;
-              if(mr_answers.length>0) nb_answers = mr_answers[0].value;
+              var nb_votes = 0;
+              if(mr_answers.length>0) {
+                nb_answers = mr_answers[0].value.answers;
+                nb_votes = mr_answers[0].value.votes;
+              }
 
               res.render('list_questions', {  //On affiche le template list_questions.jade
                 title: 'Les questions',
                 questions: doc,
                 answers: nb_answers,
+                votes: nb_votes,
                 locals: {flash: req.flash()}
               });
 
