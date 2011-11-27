@@ -1,3 +1,14 @@
+script
+  $(document).ready(function(){
+        // Button
+        $("#answer_button").click(function(event){
+          event.preventDefault();
+          $('#answer_form').show('fast');
+          $('#answer').focus();
+        });
+    });
+
+
 .content
   section
     .row
@@ -23,10 +34,10 @@
           p Un vote - <a href='/question/#{question._id}/vote'>Voter</a>
         - else
           p #{question.votes} votes - <a href='/question/#{question._id}/vote'>Voter</a>
-        a(class= 'btn primary', href= '#') Répondre
+        a(class= 'btn primary', href= '#', id='answer_button') Répondre
   <br/>
   <br/>
-  section
+  section(id='answer_form', style='display:none')
     .row
       .span12
         form(action="/question/#{question._id}/answer", method="post")
