@@ -126,10 +126,23 @@ app.get('/500', function(req, res, next){
 
 // ###Index de MrPourquoi
 app.get('/', function(req, res){
-   res.render('index', {          // on utilise le template index.jade
-    title: 'Accueil',             // Le titre (champ utilisé dans layout.jade)
-    locals: {flash: req.flash()}  // Pour s'assurer que les messages flash seront bien transmis
+  Question.find({},[],{skip:0,limit:3, sort:{date : -1} },function (err, doc){      //Utilisation de la fonction find avec une limite de 5 questions
+    if(err != null) {
+      console.log("Error in GET /Question/list" + err);
+      req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+      res.redirect('back');
+    } else if(doc == null) {
+      req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé de question en base - pourquoi ne pas en rédiger une ? ');
+      res.redirect('back');
+    } else {
+      res.render('index', {          // on utilise le template index.jade
+        title: 'Accueil',             // Le titre (champ utilisé dans layout.jade)
+        questions: doc,
+        locals: {flash: req.flash()}  // Pour s'assurer que les messages flash seront bien transmis
+      });
+    }
   });
+
 });
 
 
@@ -333,7 +346,11 @@ app.post('/question', function(req, res){
 });
 
 // ###Récupération de la liste de toutes les questions
+//
+// Utilisation de mapreduce pour calculer le nbre de réponses/votes totaux basé sur [kylebanker.com](http://kylebanker.com/blog/2009/12/mongodb-map-reduce-basics/) et sur 
+// [wmilesn.com](http://wmilesn.com/2011/07/code/how-to-map-reduce-with-mongoose-mongodb-express-node-js/)
 app.get('/question/list', function(req, res){
+
 
   Question.find(function (err, doc){      //Utilisation de la fonction find sans critère => nous récupérons donc tous les éléments en base
     if(err != null) {
@@ -344,12 +361,15 @@ app.get('/question/list', function(req, res){
       req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé de question en base - pourquoi ne pas en rédiger une ? ');
       res.redirect('back');
     } else {
-
-
-      mapFunction = function() { //map function
-        emit("answer_vote", {answers: this.nb_answers, votes: this.nb_votes}); //sends the url 'key' and a 'value' of 1 to the reduce function
+      // Fonction de map qui renvoie le nbre de réponses et et le nombre de votes totaux par
+      // question, en utilisant une clé **answer_vote** qui sera commune pour faire l'aggrégation
+      // totale
+      mapFunction = function() {
+        emit("answer_vote", {answers: this.nb_answers, votes: this.nb_votes});
       }; 
 
+      // Fontion de reduce qui fait la somme du nbre de réponses/votes à partir des données émises
+      // par la fonction de map, puis retourne un array de résultat
       reduceFunction = function(key, values) { //reduce function
         var result = {answers: 0, votes: 0};
         values.forEach(function(value) {
@@ -359,23 +379,26 @@ app.get('/question/list', function(req, res){
         return result;
       };
       
+      // Préparation de la commande qui sera envoyée à mongodb et stockée dans **mr_questions_answers**
+      //
+      // Utilisation du mode replace pour remplacer les résultats à chaque nouvelle requète
       var command = {
         mapreduce: "questions", 
         map: mapFunction.toString(), 
         reduce: reduceFunction.toString(),
         out: {replace: "mr_questions_answers"}
       };
-
-      //Execution de la commande **map_reduce_cmd** de map/reduce pour récupérer le nombre total de réponse
+      // Execution de la commande **map_reduce_cmd** de map/reduce pour récupérer le nombre total de réponse
       mongoose.connection.db.executeDbCommand(command, function(err, doc) {});
 
-      mongoose.connection.db.collection('mr_questions_answers', function(err, collection) { //query the new map-reduced table
+      // Récupération des résultats (commande spécifique à mongoose)
+      mongoose.connection.db.collection('mr_questions_answers', function(err, collection) { 
         if(err != null) {
           console.log("Error in GET /Question/list" + err);
           req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
           res.redirect('back');
         } else {
-          collection.find({}).toArray(function(err, mr_answers) { //only pull in the top 10 results and sort descending by number of pings
+          collection.find({}).toArray(function(err, mr_answers) {
             if(err != null) {
               console.log("Error in GET /Question/list" + err);
               req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
@@ -383,6 +406,8 @@ app.get('/question/list', function(req, res){
             } else {
               var nb_answers = 0;
               var nb_votes = 0;
+              // Vérification qu'on a bien récupéer quelque chose qui se trouve à la position 0 de
+              // l'array
               if(mr_answers.length>0) {
                 nb_answers = mr_answers[0].value.answers;
                 nb_votes = mr_answers[0].value.votes;

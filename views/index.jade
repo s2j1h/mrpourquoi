@@ -19,20 +19,15 @@ else if (flash.success != null)
   a(class= 'btn primary large', href= '/question') Poser une question &raquo;
 
 .row
-  .span-one-third
+  .span8
     h2 Dernières questions
-    p Etiam porta sem malesuada magna mollis euismod. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.
+    each question in questions
+      p <a href="/question/#{question._id}/show">#{question.body}</a>
     p
-      a(class='btn',href='#') Voir la suite &raquo;
+      a(class='btn',href='/question/list') Voir la suite &raquo;
 
-  .span-one-third
+  .span8
     h2 Questions favorites
-    p Etiam porta sem malesuada magna mollis euismod. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.
-    p
-      a(class='btn',href='#') Voir la suite &raquo;
-
-  .span-one-third
-    h2 Questions sans réponse
     p Etiam porta sem malesuada magna mollis euismod. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.
     p
       a(class='btn',href='#') Voir la suite &raquo;
