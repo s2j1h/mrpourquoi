@@ -128,20 +128,73 @@ app.get('/500', function(req, res, next){
 app.get('/', function(req, res){
   Question.find({},[],{skip:0,limit:3, sort:{date : -1} },function (err, doc){      //Utilisation de la fonction find avec une limite de 5 questions
     if(err != null) {
-      console.log("Error in GET /Question/list" + err);
+      console.log("Error in GET /" + err);
       req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
       res.redirect('back');
     } else if(doc == null) {
       req.flash('error', 'Holy guacamole! Nous sommes désolé mais nous n\'avons pas trouvé de question en base - pourquoi ne pas en rédiger une ? ');
       res.redirect('back');
     } else {
-      res.render('index', {          // on utilise le template index.jade
-        title: 'Accueil',             // Le titre (champ utilisé dans layout.jade)
-        questions: doc,
-        locals: {flash: req.flash()}  // Pour s'assurer que les messages flash seront bien transmis
-      });
+
+      // Fonction de map qui renvoie la liste des réponses au question avec (id_question, answer_body, answer_date)
+      mapFunction = function() {
+        var question_id = this._id
+        this.answers.forEach(function(answer) {
+          emit(answer._id, {answer_body: answer.body,answer_date: answer.date, question_id: question_id});
+        });
+      }; 
+
+      // Fontion de reduce qui fait la somme du nbre de réponses/votes à partir des données émises
+      // par la fonction de map, puis retourne un array de résultat
+      reduceFunction = function(key, values) { //reduce function
+        var result = {answer_body: "", answer_date: 0, question_id: ""};
+        values.forEach(function(value) {
+          result.answer_body = value.answer_body;
+          result.answer_date = value.answer_date;
+          result.question_id = value.question_id;
+        });
+        return result;
+      };
+      // Préparation de la commande qui sera envoyée à mongodb et stockée dans **mr_questions_answers**
+      //
+      // Utilisation du mode replace pour remplacer les résultats à chaque nouvelle requète
+      var command = {
+        mapreduce: "questions", 
+        map: mapFunction.toString(), 
+        reduce: reduceFunction.toString(),
+        out: {replace:"mr_list_answers"}
+      };
+      // Execution de la commande **map_reduce_cmd** de map/reduce pour récupérer le nombre total de réponse
+      mongoose.connection.db.executeDbCommand(command, function(err, doc) {if(err !=null) { console.log("Error in GET /" + err);}});
+      
+      // Récupération des résultats (commande spécifique à mongoose)
+      mongoose.connection.db.collection('mr_list_answers', function(err, collection) { 
+        if(err != null) {
+          console.log("Error in GET /" + err);
+          req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+          res.redirect('back');
+        } else {
+          collection.find({},[],{skip:0,limit:3, sort:{_id : -1} }).toArray(function(err, mr_answers) { //tri par l'id: très laid mais pas trouvé encore d'autres solutions
+            if(err != null) {
+              console.log("Error in GET /" + err);
+              req.flash('error', 'Bloody tzatziki! Une erreur est survenue et la liste de questions n\'a pas été trouvée dans la base. Pourquoi ne pas réessayer ?');
+              res.redirect('back');
+            } else {
+              res.render('index', {          // on utilise le template index.jade
+              title: 'Accueil',             // Le titre (champ utilisé dans layout.jade)
+              questions: doc,
+              answers: mr_answers,
+              locals: {flash: req.flash()}  // Pour s'assurer que les messages flash seront bien transmis
+              });
+
+              }
+            });
+          }
+        });
     }
   });
+
+
 
 });
 

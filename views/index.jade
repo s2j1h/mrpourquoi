@@ -27,8 +27,9 @@ else if (flash.success != null)
       a(class='btn',href='/question/list') Voir la suite &raquo;
 
   .span8
-    h2 Questions favorites
-    p Etiam porta sem malesuada magna mollis euismod. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.
+    h2 Dernières réponses
+    each answer in answers
+      p <a href="/question/#{answer.value.question_id}/show">#{answer.value.answer_body}</a>
     p
-      a(class='btn',href='#') Voir la suite &raquo;
+      a(class='btn',href='/question/list') Voir la suite &raquo;
 
